@@ -39,27 +39,62 @@ def stackImages(scale, imgArray):
     return ver
 
 
+def getContours(img, imgContour):
+    """
+
+
+    :param img: it is the input image
+    :param imgContour: it will be our output image
+    :return:
+    """
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+
+        if area > 10:
+            cv2.drawContours(imgContour, cnt, -1, (255, 0, 255), 7)
+            peri = cv2.arcLength(cnt, True)  # True says that contour is closed
+            approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
+
+
 cv2.namedWindow("PARAMETERS")
 cv2.resizeWindow("PARAMETERS", 640, 240)
-cv2.createTrackbar("Threshold1", "PARAMETERS", 150, 255, empty)
+cv2.createTrackbar("Threshold1", "PARAMETERS", 0, 255, empty)
 cv2.createTrackbar("Threshold2", "PARAMETERS", 255, 255, empty)
-
 
 frameWidth = 640
 frameHeight = 400
-cap = cv2.VideoCapture(0)
-cap.set(3, frameWidth)
-cap.set(4, frameHeight)
+# cap = cv2.VideoCapture(0)
+# cap.set(3, frameWidth)
+# cap.set(4, frameHeight)
+path = 'resources/rectangle.png'
+img = cv2.imread(path)
 
+# 137 0
+# 16 109
 
 while True:
 
-    ret, img = cap.read()
-    imgBlur = cv2.GaussianBlur(img, (7,7), 1)
+    # ret, img = cap.read()
+
+    imgContour = img.copy()
+
+    imgBlur = cv2.GaussianBlur(img, (7, 7), 1)
     imgGray = cv2.cvtColor(imgBlur, cv2.COLOR_BGR2GRAY)
 
-    imgStack = stackImages(0.8, ([img, imgBlur, imgGray]))
+    threshold1 = cv2.getTrackbarPos("Threshold1", "PARAMETERS")
+    threshold2 = cv2.getTrackbarPos("Threshold2", "PARAMETERS")
+    print(threshold1, threshold2)
+    imgCanny = cv2.Canny(imgGray, threshold1, threshold2)
 
+    kernel = np.ones((5, 5))
+    imgDil = cv2.dilate(imgCanny, kernel, iterations=1)
+
+    getContours(imgCanny, imgContour)
+
+    imgStack = stackImages(0.8, ([img, imgGray, imgCanny],
+                                 [imgContour, imgContour, imgContour]))
     cv2.imshow("img", imgStack)
 
     if cv2.waitKey(1) & 0XFF == ord('q'):
